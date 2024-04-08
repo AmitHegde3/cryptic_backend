@@ -9,7 +9,7 @@ const fetchuser = require("../middleware/fetchuser")// Importing middleware for 
 const JWT_SECRET = "This is a test";
 // const JWT_SECRET = process.env.JWT_KEY; 
 
-console.log("Secret toke is:",JWT_SECRET) 
+// console.log("Secret toke is:",JWT_SECRET) 
 router.use(express.json()); 
 
 // Router 1: Create a User using : POST "/api/auth/createUser". Doesnt require auth...Create authToken
@@ -69,6 +69,78 @@ router.post("/createUser",
     }
 
 );
+
+// Router 2: Login for a user. POST "/api/auth/login"
+
+router.post("/login", [
+    body("email", "Enter a valid Email").isEmail(),
+    body("password", "Password cannot be Blank").exists(),
+],
+    async (req, res) => {
+        const error = validationResult(req);
+
+        if (!error.isEmpty()) {
+            res.send({ errors: error.array() });
+            return; // Return from the function
+        }
+
+        const { email, password } = req.body;
+
+        try {
+            let user = await User.findOne({ email });
+            if (!user) {
+                return res
+                    .status(400)
+                    .json({ error: "Please try to login with correct credentials" });
+            }
+
+            const passCompare = await bcrypt.compare(password, user.password);
+            if (!passCompare) {
+                return res
+                    .status(400)
+                    .json({ success, error: "Please try to login with correct credentials" });
+            }
+
+            const data = {
+                user: {
+                    id: user.id,
+                },
+            };
+
+            const authToken = jwt.sign(data, JWT_SECRET);
+
+            res.json({ authToken });
+
+        }
+        
+        catch (error) {
+            console.error(error.message);
+            res.status(500).send("Internal server error!");
+        }
+        
+    }
+
+);
+
+
+// Router 3: Get logged in user details: POST "/api/auth/getuser". Login required
+
+router.post("/getuser", fetchuser,
+    async (req, res) => {
+        // Fetching user details from the request object(which is added by the fetch user middleware)
+        try {
+            const userId = req.user.id;
+            const user = await User.findById(userId).select("-password");
+
+            res.send(user);
+
+        } catch (error) {
+            console.error(error.message);
+            res.status(500).send("Internal server error!");
+        }
+    }
+)
+
 
 
 module.exports = router;
