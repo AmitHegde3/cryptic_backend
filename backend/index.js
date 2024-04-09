@@ -12,7 +12,7 @@ app.use(cors());
 
 // Avilable routes
 app.use('/api/auth', require('./routes/auth.js'))
-// app.use('/api/coins', require('./routes/coins.js'))
+app.use('/api/coins', require('./routes/coins.js'))
 
 app.listen(port, () => {
     console.log(`Echo Vault backend listening at http://localhost:${port}`)
